@@ -211,12 +211,11 @@ namespace BAB_TestPaperMaker
             sourceImage = ResizeWritableBitmap(sourceImage, (int)recttarget.Width, (int)recttarget.Height);
             FalconWpf.ImageViewer iv = new FalconWpf.ImageViewer();
             iv.SetImage(sourceImage);
-            iv.fn_SaveImage("Resize.png");
+            //iv.fn_SaveImage("Resize.png");
             if (sourceImage != null)
             {
                 int sourceBytesPerPixel = (int)(sourceImage.Format.BitsPerPixel / 8.0);
                 int sourceBytesPerLine = sourceImage.PixelWidth * sourceBytesPerPixel;
-
 
                 byte[] sourcePixels = new byte[sourceBytesPerLine * sourceImage.PixelHeight];
                 sourceImage.CopyPixels(sourcePixels, sourceBytesPerLine, 0);
@@ -225,6 +224,7 @@ namespace BAB_TestPaperMaker
                 target.WritePixels(targetRect, sourcePixels, sourceBytesPerLine, 0);
             }
         }
+
         public WriteableBitmap ResizeWritableBitmap(WriteableBitmap wBitmap, int reqWidth, int reqHeight)
         {
             int OriWidth = (int)wBitmap.PixelWidth;
@@ -271,43 +271,59 @@ namespace BAB_TestPaperMaker
         private void bn_Create_Click(object sender, RoutedEventArgs e)
         {
             fn_CreateTestPage();
-            MessageBox.Show("생성 완료.");
         }
 
         private void fn_CreateTestPage()
         {
             string strFile = "Test";
-            for (int i = 0; i < rsc.PageTotal; i++)
+            DateTime time = DateTime.Now;
+            if(ivDst.DpiX != 96 && ivDst.DpiY != 96)
             {
-                string strFileName = $"{strFile}_{i}.png";
-                fn_SetImage(i);
-                CroppedBitmap bmp1 = ivSrc.GetROIImage(0);
-                if (bmp1 != null)
+                if(MessageBox.Show("Template 이미지 DPI가 96이 아닙니다. 결과가 보이는것과 다르게 출력됩니다. 계속 하시겠습니까?", "", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.No)
                 {
-                    WriteableBitmap img = new WriteableBitmap(bmp1);
-                    WriteableBitmap imgtarget = ivDst.fn_GetImageStream();
-                    Rect rectROI = ivDst.GetROIRect(0);
-                    if (img != null)
-                    {
-                        CopyImageTo(img, imgtarget, rectROI);
-                        ivDst.SetImage(imgtarget);
-                        ivDst.fn_SaveImage(strFileName);
-                    }
+                    MessageBox.Show("작업을 취소합니다.");
+                    return;
                 }
+            }
+            try
+            {
+                for (int i = 0; i < rsc.PageTotal; i++)
+                {
+                    string strFileName = $"{strFile}_{time:yyyyMMdd_HHmm}_{(i + 1):D2}.png";
+                    fn_SetImage(i);
+                    CroppedBitmap bmp1 = ivSrc.GetROIImage(0);
+                    if (bmp1 != null)
+                    {
+                        WriteableBitmap img = new WriteableBitmap(bmp1);
+                        WriteableBitmap imgtarget = ivDst.fn_GetImageStream();
+                        Rect rectROI = ivDst.GetROIRect(0);
+                        if (img != null)
+                        {
+                            CopyImageTo(img, imgtarget, rectROI);
+                            ivDst.SetImage(imgtarget);
+                            ivDst.fn_SaveImage(strFileName);
+                        }
+                    }
 
-                CroppedBitmap bmp2 = ivSrc.GetROIImage(1);
-                if (bmp2 != null)
-                {
-                    WriteableBitmap img = new WriteableBitmap(bmp2);
-                    WriteableBitmap imgtarget = ivDst.fn_GetImageStream();
-                    Rect rectROI = ivDst.GetROIRect(1);
-                    if (img != null)
+                    CroppedBitmap bmp2 = ivSrc.GetROIImage(1);
+                    if (bmp2 != null)
                     {
-                        CopyImageTo(img, imgtarget, rectROI);
-                        ivDst.SetImage(imgtarget);
-                        ivDst.fn_SaveImage(strFileName);
+                        WriteableBitmap img = new WriteableBitmap(bmp2);
+                        WriteableBitmap imgtarget = ivDst.fn_GetImageStream();
+                        Rect rectROI = ivDst.GetROIRect(1);
+                        if (img != null)
+                        {
+                            CopyImageTo(img, imgtarget, rectROI);
+                            ivDst.SetImage(imgtarget);
+                            ivDst.fn_SaveImage(strFileName);
+                        }
                     }
                 }
+                MessageBox.Show($"작업 완료. 결과 : {strFile}_{time:yyyyMMdd_HHmm}_XX.png");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"예외 발생 : {ex.Message}");
             }
         }
 
